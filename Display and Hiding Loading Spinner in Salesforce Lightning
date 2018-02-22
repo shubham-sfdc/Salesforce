@@ -1,0 +1,48 @@
+component:
+
+<aura:component controller="test">
+  <ltng:require styles="{! $Resource.SLDS_2_1_4 + '/assets/styles/salesforce-lightning-design-system.css'}"/>   
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <aura:handler event="aura:waiting" action="{!c.showSpinner}"/>
+    <aura:handler event="aura:doneWaiting" action="{!c.hideSpinner}"/>
+    <aura:attribute name="toggleSpinner" type="boolean" default="false"/> 
+    
+<aura:if isTrue="{!v.toggleSpinner}">
+ <div class="slds-spinner_container">
+  <div class="slds-spinner--brand  slds-spinner slds-spinner--large slds-is-relative" role="alert">
+    <span class="slds-assistive-text">Loading</span>
+    <div class="slds-spinner__dot-a"></div>
+    <div class="slds-spinner__dot-b"></div>
+  </div>
+</div>
+ </aura:if>   
+</aura:component>
+
+
+controller:
+
+({
+	doInit : function(component, event, helper) {
+	// work on component init..
+       
+	},
+ 
+    showSpinner : function(component,event,helper){
+      // display spinner when aura:waiting (server waiting)
+        component.set("v.toggleSpinner", true);  
+      },
+    hideSpinner : function(component,event,helper){
+   // hide when aura:downwaiting
+        component.set("v.toggleSpinner", false);
+        
+    }
+})
+
+
+style:
+
+.THIS.slds-spinner_container {
+  z-index: 10000;
+  position: fixed;
+   
+}
