@@ -1,0 +1,301 @@
+
+//USER INSERT
+
+Profile p = [SELECT Id FROM Profile WHERE Name='System Administrator']; 
+        User u = new User(Alias = 'standt', Email='standarduser@gmail.com', 
+        EmailEncodingKey='UTF-8', LastName='Testing', LanguageLocaleKey='en_US', 
+        LocaleSidKey='en_US', ProfileId = p.Id, 
+        TimeZoneSidKey='America/Los_Angeles', UserName='standardtestuser11@testorg.com');
+        System.runAs(u)
+		{
+		// your code here
+		}
+		
+		
+		
+....................................................................................................
+
+//RECORD TYPE QUERRY
+
+Id CaseId = Schema.SObjectType.Case.getRecordTypeInfosByName().get('EFS Credit Case').getRecordTypeId();		
+											
+											OR
+											
+String strRecordTypeId = [Select Id From RecordType Where SobjectType = 'Chart__c' and Name = 'Open'].Id;
+Chart__c.RecordTypeId = strRecordTypeId;
+											
+											OR
+
+Schema.DescribeSObjectResult cfrSchema = Schema.SObjectType.Chart__c; 
+        Map<String,Schema.RecordTypeInfo> ChartRecordTypeInfo = cfrSchema.getRecordTypeInfosByName();
+ChartRecordTypeInfo.get('Closed').getRecordTypeId(); //Set recordtypeId.											
+
+
+											Or
+//TO USE All RECORDTYPES TOGETHER
+
+List<RecordType> rt = [SELECT SobjectType, Name, Id FROM RecordType
+                                WHERE Name IN ('EFS Credit Case', 'Disconnect Request', 'Customer Tax Inquiries Request',
+                                               'Simple Order for RevChain', '911 Request', 'Billing Hierarchy Request')];
+                
+        //Date dt = System.Today();
+		//system.debug('dt...'+dt.toStartOfWeek());
+		
+		List<Case> lst_Case = new List<Case>();        
+        for (RecordType r : rt) {            
+            // Create test case
+            Case tc = new Case();
+            tc.Comments__c = 'Test Case ' + i++;
+            tc.Sales_Rep__c = tu.Id; 
+            tc.Account = ta;
+            tc.AccountId = ta.Id ;
+            tc.RecordTypeId = r.Id;
+            tc.BTN_Entered__c = '5853853872';            
+            tc.Customer_Porting__c = 'No';
+            tc.Intercept_Message_Required__c = false;
+            tc.Remote_Call_Forward_Required__c = false;
+            tc.DID_Required__c = false;
+            tc.ETP_Applied__c = false;
+            tc.ETP_Waiver_Reason__c = 'Cause';
+            tc.Disconnect_Reason_Code__c = 'Non Payment'; //LM added to meet validation rule 6/23/15
+            tc.Date_Services_Suspended__c = system.today().toStartOfWeek().adddays(9); //LM added to meet validation rule change 6/23/15
+			
+            //ZH 5/17/15 Meeting validation rule requirement by populating the Parent_Account_ID__c field for Customer Tax Inquiries Request
+            if(r.Name == 'Customer Tax Inquiries Request')
+                tc.Parent_Account_ID__c = '1234567890';
+
+            lst_Case.add(tc);            
+        }
+        insert lst_Case ;
+....................................................................................................
+
+//to call a class having standard controller
+
+
+ ApexPages.StandardController sc = new ApexPages.StandardController(opp);
+        OppDeadLostDelayedController opplost = new OppDeadLostDelayedController(sc);
+		
+
+.....................................................................................................
+
+//TO SPLIT MONTH AND YEAR FROM DATE
+
+if(obj.Credit_Card_Exp_Date__c != null && obj.Credit_Card_Exp_Date__c.trim() != '')
+             objC.ChargentOrders__Card_Expiration_Month__c = obj.Credit_Card_Exp_Date__c.split('/')[0];
+             objC.ChargentOrders__Card_Expiration_Year__c = obj.Credit_Card_Exp_Date__c.split('/')[1];
+			 
+//TO GET THE LAST FOUR DIGIT FROM CREDIT CARD
+			 
+             objC.ChargentOrders__Card_Last_4__c = obj.Credit_Card_Number__c.right(4);
+			 
+.......................................................................................................
+
+//Calling a WRAPPER CLASS
+
+ApexPages.StandardController sc = new ApexPages.StandardController(opp);
+        OppDeadLostDelayedController opplost = new OppDeadLostDelayedController(sc);
+		opplost.getRelevantDynamicQuestions();
+		 
+		
+		OppDeadLostDelayedController.OppDeadLostDelayedQuestWrapper ob = new OppDeadLostDelayedController.OppDeadLostDelayedQuestWrapper();
+		ob.dynQuestFieldLabel = 'dyn';
+		ob.oppFieldPath = 'field path';	
+		ob.oppFieldAnswer = 'field answer';
+		
+........................................................................................................
+
+//WEB SERVICES TEST CLASS
+
+@isTest
+global class PAOQuoteServiceTest {
+    public static Boolean skipAllTests = false;
+@isTest
+    public static void exportPAQuoteForEFSCaseMockInvalidTest_test14() {
+        if(skipAllTests) return ;
+        
+		Quote__c q = TestData.init().createNewQuote().data.quote;
+		
+        PAO_Integration_Settings__c settings = new PAO_Integration_Settings__c(SetupOwnerID=UserInfo.GetUserID(),Quote_Service_URL__c = 'foo');
+        insert settings;
+        PAOQuoteService service = new PAOQuoteService();
+        service.settings = settings;
+        
+        Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new PAOQuoteService.exportPAQuoteForEFSCaseMockInvalid(q.id, 'ACCESSLOOPEXISTINGFACILITY'));
+            Boolean response = service.exportPAQuote('12345');
+            System.assertEquals(true, response);
+        Test.stopTest();
+    }
+    
+    private class PAOQuoteService_Mock implements HttpCalloutMock
+    {
+        string quoteId;
+        PAOQuoteService_Mock(string quoteId)
+        {
+            this.quoteId = quoteId;
+        }
+        
+        public HTTPResponse respond(HTTPRequest req) 
+        {
+            String fullJson = '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'+
+                        '<soap:Body>'+
+                            '<process>'+
+                                '<QuoteId>'+quoteId+'</QuoteId>'+  
+                                '<QuoteType>PAO</QuoteType>'+
+                            '</process>'+
+                        '</soap:Body>'+
+                    '</soap:Envelope>';
+            HTTPResponse res = new HTTPResponse();
+            res.setHeader('Content-Type', 'text/json');
+            res.setBody(fullJson);
+            res.setStatusCode(200);
+            return res;
+        }
+    }
+    
+}
+
+
+.................................................................................................
+
+//TO COVER APEXPAGE REFERENCE
+
+Id CycleId = Apexpages.currentpage().getParameters().get('id');
+
+//USE CODE
+
+		PageReference pageRef = Page.Employee_Pages;
+        Test.setCurrentPage(pageRef);
+        ApexPages.Standardcontroller sc = new ApexPages.Standardcontroller(emp);
+        ApexPages.currentPage().getParameters().put('Id',emp.id);
+
+.................................................................................................
+
+
+// TO BULKIFY THE TEST CLASS
+
+		List<Opportunity> listOpportunity  = new list<Opportunity >();
+		for(Integer i = 0 ; i<=100 ;i++)
+		{
+			Opportunity opp1 = new Opportunity() ;
+			opp1.Name ='Test'+i;
+			opp1.accountid = acc1.id;
+			opp1.StageName = 'Closed Won';
+			opp1.CloseDate=Date.Today();
+			listOpportunity.add(opp1);
+		}         
+
+		insert listOpportunity;
+
+			 
+...................................................................................................
+
+When working with Opportunity Line Items in Test Classes, you need to first make sure you have a pricebook, 
+then you need to create a product, then you need to create a pricebook entry and then you can create an Opportunity Line Item.
+
+See the code snippets below on how to create a Opporunity Line Item in a test class.
+
+// This is how we get the Standard PriceBook Id.  Prior to Summer '14, we needed
+// to use SeeAllData=true, so this is a big improvement
+Id pricebookId = Test.getStandardPricebookId();
+
+//Create your product
+Product2 prod = new Product2(
+     Name = 'Product X',
+     ProductCode = 'Pro-X',
+     isActive = true
+);
+insert prod;
+
+//Create your pricebook entry
+PricebookEntry pbEntry = new PricebookEntry(
+     Pricebook2Id = pricebookId,
+     Product2Id = prod.Id,
+     UnitPrice = 100.00,
+     IsActive = true
+);
+insert pbEntry;
+
+//create your opportunity line item.  This assumes you already have an opportunity created, called opp
+OpportunityLineItem oli = new OpportunityLineItem(
+     OpportunityId = opp.Id,
+     Quantity = 5,
+     PricebookEntryId = pbEntry.Id,
+     TotalPrice = quantity * pbEntry.UnitPrice
+);
+insert oli;
+
+..............................................................................................
+
+//Email Template to Insert in Test Classes
+
+
+EmailTemplate validEmailTemplate = new EmailTemplate();
+validEmailTemplate.isActive = true;
+validEmailTemplate.Name = 'name';
+validEmailTemplate.DeveloperName = 'unique_name_addSomethingSpecialHere';
+validEmailTemplate.TemplateType = 'text';
+validEmailTemplate.FolderId = UserInfo.getUserId();
+
+insert validEmailTemplate;
+
+................................................................................................
+
+List<RecordType> rt = [SELECT SobjectType, Name, Id FROM RecordType
+                                WHERE Name 
+                                IN ('Simple Order Request', 'Simple Order for CAMSBusiness', 
+                                    'Billing Credit Request', 'Data Solutions Engineering Engagement Request',
+                                    'Capital Assignment Fund Request','Invoice hierarchy', 'Credit Verification Request', 'Network Qualification Request')];
+                                
+        List<Case> lst_Case = new List<Case>();       
+        for (RecordType r : rt) {            
+            // Create test case
+            Case tc = new Case();
+            tc.Comments__c = 'Test Case '+ i++;
+            tc.Sales_Rep__c = tu.Id;
+            
+            if(r.Name == 'Simple Order for CAMSBusiness') 
+                tc.Accountid = taC.id;
+            else
+                tc.Accountid = ta.id;
+                
+            tc.RecordTypeId = r.Id;
+            tc.BTN_Entered__c = '5853853872';            
+            tc.Customer_Porting__c = 'No';
+            tc.Intercept_Message_Required__c = false;
+            tc.Remote_Call_Forward_Required__c = false;
+            tc.DID_Required__c = false;
+            tc.ETP_Applied__c = false;
+			tc.Service_Location__c = sl.id;
+			tc.Request_Type__c = 'Billing Change/Customer Information Change';
+            lst_Case.add(tc);            
+        }
+        //try{
+        insert lst_Case ;
+		
+.........................................................................................................
+
+CONVERT LEAD IN TEST Classes
+
+		Lead objlead = new Lead();
+		objlead.LastName = 'test';
+		objlead.Status = 'New';
+		objlead.Company = 'Test Company';
+		insert objlead;
+		
+		test.startTest();
+ 
+               database.leadConvert lc = new database.leadConvert();
+               lc.setLeadId(objlead.id);
+ 
+               leadStatus convertStatus = [SELECT Id, MasterLabel FROM LeadStatus WHERE IsConverted=true LIMIT 1];
+               lc.setConvertedStatus(convertStatus.MasterLabel);
+ 
+               Database.LeadConvertResult lcr = Database.convertLead(lc);
+               System.assert(lcr.isSuccess());
+ 
+               lc.setOpportunityName('Test Opp');
+ 
+        test.stopTest();
+		
+...........................................................................................................
