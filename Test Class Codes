@@ -299,3 +299,23 @@ CONVERT LEAD IN TEST Classes
         test.stopTest();
 		
 ...........................................................................................................
+
+LOGIC AROUND CREATED DATE (CREATING AN OBJECT WHICH HAS CREATED DATE IN PAST)
+
+Account account = new Account(Name = 'Test');
+insert account;
+
+Datetime yesterday = Datetime.now().addDays(-1);
+Test.setCreatedDate(account.Id, yesterday);
+
+...........................................................................................................
+
+TEST class to call batch and Schedule Class
+
+batchReviewAndPayReqProcess obj = new batchReviewAndPayReqProcess();       
+            obj.start(bc);     
+   scheduleReviewAndPayReqProcess tst = new scheduleReviewAndPayReqProcess();
+   String sch = '0 0 23 * * ?';
+   system.schedule('Test ststus check',sch,tst);   
+            Database.executeBatch(obj);
+            obj.finish(bc);  
