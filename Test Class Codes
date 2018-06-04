@@ -319,3 +319,25 @@ batchReviewAndPayReqProcess obj = new batchReviewAndPayReqProcess();
    system.schedule('Test ststus check',sch,tst);   
             Database.executeBatch(obj);
             obj.finish(bc);  
+
+...........................................................................................................
+
+How to test List <Select Option>
+
+//Method
+public List<SelectOption> lstDiagnosisReport
+{
+	get
+	{
+	    //YOUR CODE
+
+	    return lstDiagnosisReport;
+	}
+	set;
+}
+    
+ //Test Class
+ clsOfficeUpdate Obj = new clsOfficeUpdate();
+ List<SelectOption> selOpts = Obj.lstDiagnosisReport;
+    
+ ..........................................................................................................
